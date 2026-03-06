@@ -68,7 +68,6 @@ export const register = async (req, res) => {
     }
 };
 
-
 export const login = async (req, res) => {
 
     const parsed = loginSchema.safeParse(req.body);
@@ -125,6 +124,7 @@ export const login = async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 };
+
 export const logout = async (req, res) => {
     try {
 
@@ -142,6 +142,7 @@ export const logout = async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 };
+
 export const checkAuth = async (req, res) => {
     try {
 
@@ -185,3 +186,5 @@ export const checkAuth = async (req, res) => {
         });
     }
 };
+
+

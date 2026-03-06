@@ -1,6 +1,7 @@
 import jwt from "jsonwebtoken";
+import { prisma } from "../lib/db.js";
 
-export const protect = (req, res, next) => {
+export const protect = async (req, res, next) => {
     try {
 
         const token = req.cookies.jwt;
@@ -13,7 +14,23 @@ export const protect = (req, res, next) => {
 
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-        req.userId = decoded.id;
+        const user = await prisma.user.findUnique({
+            where: { id: decoded.id },
+            select: {
+                id: true,
+                email: true,
+                name: true,
+                role: true
+            }
+        });
+
+        if (!user) {
+            return res.status(404).json({
+                error: "User not found"
+            });
+        }
+
+        req.user = user;
 
         next();
 
