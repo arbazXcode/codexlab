@@ -2,7 +2,7 @@ import { UserRole } from "@prisma/client";
 import { prisma } from "../lib/db.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import { registerSchema } from "../validation/auth.validation.js";
+import { registerSchema, loginSchema } from "../validation/auth.validation.js";
 
 
 
@@ -69,8 +69,62 @@ export const register = async (req, res) => {
 };
 
 
-export const login = async (req, res) => { };
+export const login = async (req, res) => {
 
+    const parsed = loginSchema.safeParse(req.body);
+
+    if (!parsed.success) {
+        return res.status(400).json({
+            error: parsed.error.issues.map(e => e.message)
+        });
+    }
+
+    const { email, password } = parsed.data;
+
+    try {
+
+        const user = await prisma.user.findUnique({
+            where: { email }
+        });
+
+        if (!user) {
+            return res.status(400).json({ error: "Invalid email or password" });
+        }
+
+        const isPasswordCorrect = await bcrypt.compare(password, user.password);
+
+        if (!isPasswordCorrect) {
+            return res.status(400).json({ error: "Invalid email or password" });
+        }
+
+        const token = jwt.sign(
+            { id: user.id },
+            process.env.JWT_SECRET,
+            { expiresIn: "7d" }
+        );
+
+        res.cookie("jwt", token, {
+            httpOnly: true,
+            sameSite: "strict",
+            secure: process.env.NODE_ENV !== "development",
+            maxAge: 7 * 24 * 60 * 60 * 1000
+        });
+
+        res.status(200).json({
+            message: "Login successful",
+            user: {
+                id: user.id,
+                email: user.email,
+                name: user.name,
+                role: user.role
+            }
+        });
+
+    } catch (error) {
+        console.error("Login Error:", error);
+        res.status(500).json({ error: error.message });
+    }
+};
 export const logout = async (req, res) => { };
 
 export const checkAuth = async (req, res) => { };
