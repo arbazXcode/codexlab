@@ -2,17 +2,26 @@ import { UserRole } from "@prisma/client";
 import { prisma } from "../lib/db.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import { registerSchema } from "../validation/auth.validation.js";
 
-export const login = async (req, res) => { };
+
 
 export const register = async (req, res) => {
-    const { name, email, password } = req.body;
+
+    const parsed = registerSchema.safeParse(req.body);
+
+    if (!parsed.success) {
+        return res.status(400).json({
+            error: parsed.error.issues
+        });
+    }
+
+    const { name, email, password } = parsed.data;
 
     try {
+
         const existingUser = await prisma.user.findUnique({
-            where: {
-                email,
-            },
+            where: { email }
         });
 
         if (existingUser) {
@@ -21,18 +30,20 @@ export const register = async (req, res) => {
 
         const hashedPassword = await bcrypt.hash(password, 10);
 
-        const newUser = prisma.user.create({
+        const newUser = await prisma.user.create({
             data: {
                 email,
                 password: hashedPassword,
                 name,
-                role: UserRole.USER,
-            },
+                role: UserRole.USER
+            }
         });
 
-        const token = jwt.sign({ id: newUser.id }, process.env.JWT_SECRET, {
-            expiresIn: "7d",
-        });
+        const token = jwt.sign(
+            { id: newUser.id },
+            process.env.JWT_SECRET,
+            { expiresIn: "7d" }
+        );
 
         res.cookie("jwt", token, {
             httpOnly: true,
@@ -47,14 +58,18 @@ export const register = async (req, res) => {
                 id: newUser.id,
                 email: newUser.email,
                 name: newUser.name,
-                role: newUser.role,
-            },
+                role: newUser.role
+            }
         });
+
     } catch (error) {
         console.error("Registration Error:", error);
         res.status(500).json({ error: error.message });
     }
 };
+
+
+export const login = async (req, res) => { };
 
 export const logout = async (req, res) => { };
 
