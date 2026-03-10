@@ -92,3 +92,35 @@ export const getProblems = async (req, res) => {
         });
     }
 };
+
+export const getProblemById = async (req, res) => {
+    try {
+
+        const { id } = req.params;
+
+        const problem = await prisma.problem.findUnique({
+            where: { id }
+        });
+
+        if (!problem) {
+            return res.status(404).json({
+                success: false,
+                message: "Problem not found"
+            });
+        }
+
+        res.status(200).json({
+            success: true,
+            problem
+        });
+
+    } catch (error) {
+
+        console.error("Get Problem Error:", error.message);
+
+        res.status(500).json({
+            success: false,
+            message: "Failed to fetch problem"
+        });
+    }
+};
