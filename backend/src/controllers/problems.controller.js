@@ -60,3 +60,35 @@ export const createProblem = async (req, res) => {
         });
     }
 };
+
+export const getProblems = async (req, res) => {
+    try {
+
+        const problems = await prisma.problem.findMany({
+            select: {
+                id: true,
+                title: true,
+                difficulty: true,
+                tags: true,
+                createdAt: true
+            },
+            orderBy: {
+                createdAt: "desc"
+            }
+        });
+
+        res.status(200).json({
+            success: true,
+            count: problems.length,
+            problems
+        });
+
+    } catch (error) {
+        console.error("Get Problems Error:", error.message);
+
+        res.status(500).json({
+            success: false,
+            message: "Failed to fetch problems"
+        });
+    }
+};
