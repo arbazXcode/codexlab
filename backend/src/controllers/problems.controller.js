@@ -64,26 +64,53 @@ export const createProblem = async (req, res) => {
 export const getProblems = async (req, res) => {
     try {
 
+        const { page = 1, limit = 10, difficulty, search } = req.query;
+
+        const skip = (page - 1) * limit;
+
+        const filters = {};
+
+        if (difficulty) {
+            filters.difficulty = difficulty;
+        }
+
+        if (search) {
+            filters.title = {
+                contains: search,
+                mode: "insensitive"
+            };
+        }
+
         const problems = await prisma.problem.findMany({
+            where: filters,
+            skip: Number(skip),
+            take: Number(limit),
+            orderBy: {
+                createdAt: "desc"
+            },
             select: {
                 id: true,
                 title: true,
                 difficulty: true,
                 tags: true,
                 createdAt: true
-            },
-            orderBy: {
-                createdAt: "desc"
             }
+        });
+
+        const totalProblems = await prisma.problem.count({
+            where: filters
         });
 
         res.status(200).json({
             success: true,
-            count: problems.length,
+            page: Number(page),
+            totalPages: Math.ceil(totalProblems / limit),
+            totalProblems,
             problems
         });
 
     } catch (error) {
+
         console.error("Get Problems Error:", error.message);
 
         res.status(500).json({
@@ -121,6 +148,42 @@ export const getProblemById = async (req, res) => {
         res.status(500).json({
             success: false,
             message: "Failed to fetch problem"
+        });
+    }
+};
+
+export const deleteProblem = async (req, res) => {
+    try {
+
+        const { id } = req.params;
+
+        const problem = await prisma.problem.findUnique({
+            where: { id }
+        });
+
+        if (!problem) {
+            return res.status(404).json({
+                success: false,
+                message: "Problem not found"
+            });
+        }
+
+        await prisma.problem.delete({
+            where: { id }
+        });
+
+        res.status(200).json({
+            success: true,
+            message: "Problem deleted successfully"
+        });
+
+    } catch (error) {
+
+        console.error("Delete Problem Error:", error.message);
+
+        res.status(500).json({
+            success: false,
+            message: "Failed to delete problem"
         });
     }
 };
