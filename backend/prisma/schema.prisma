@@ -21,7 +21,8 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  problems Problem[]
+  problems    Problem[]
+  submissions Submission[]
 
   @@index([role])
 }
@@ -33,11 +34,12 @@ enum Difficulty {
 }
 
 model Problem {
-  id          String     @id @default(cuid())
+  id          String       @id @default(cuid())
   title       String
   description String
   difficulty  Difficulty
   tags        String[]
+  submissions Submission[]
 
   examples    Json
   constraints String
@@ -46,7 +48,7 @@ model Problem {
   editorial String?
 
   testCases          Json
-  codeSnippets       Json
+  codeSnippets       Json //langugage specific starter code
   referenceSolutions Json
 
   createdAt DateTime @default(now())
@@ -56,4 +58,35 @@ model Problem {
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([difficulty])
+}
+
+enum SubmissionStatus {
+  PENDING
+  ACCEPTED
+  WRONG_ANSWER
+  RUNTIME_ERROR
+  COMPILATION_ERROR
+}
+
+model Submission {
+  id String @id @default(cuid())
+ 
+  sourceCode String
+  language   String
+  stdin      String?
+  stdout     String?
+  stderr     String?
+
+  status SubmissionStatus
+
+  createdAt DateTime @default(now())
+
+  userId    String
+  problemId String
+
+  user    User    @relation(fields: [userId], references: [id])
+  problem Problem @relation(fields: [problemId], references: [id])
+
+  @@index([userId])
+  @@index([problemId])
 }
